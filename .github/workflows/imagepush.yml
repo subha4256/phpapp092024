@@ -3,7 +3,7 @@ name: Build and Push Docker Image & Update ArgoCD
 on:
   push:
     branches:
-      - scan-trivy
+      - main
 
 jobs:
   build-and-update:
@@ -31,16 +31,17 @@ jobs:
         run: |
           docker push azuresubha/092024:${{ steps.random.outputs.tag }}
 
-      - name: Clone ArgoCD config repo
+      - name: Clone ArgoCD config repo using custom credentials
         run: |
-          git clone --branch test-argocd-config https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/subha4256/argocd-config.git
+          git clone --branch test-argocd-config https://${{ secrets.USER_GIT }}:${{ secrets.PASSWORD_GIT }}@github.com/subha4256/argocd-config.git
           cd argocd-config
 
-          # Update image tag in deploy.yml
+          # Update deploy.yml with new image tag
           sed -i "s|azuresubha/092024:.*|azuresubha/092024:${{ steps.random.outputs.tag }}|g" deploy.yml
 
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name "${{ secrets.USER_GIT }}"
+          git config user.email "${{ secrets.USER_GIT }}@users.noreply.github.com"
+
           git add deploy.yml
           git commit -m "Update image tag to azuresubha/092024:${{ steps.random.outputs.tag }}"
           git push origin test-argocd-config
