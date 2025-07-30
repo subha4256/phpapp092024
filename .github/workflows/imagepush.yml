@@ -1,17 +1,21 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Image & Update ArgoCD
 
 on:
   push:
     branches:
-      - scan-trivy
+      - main
 
 jobs:
-  build:
+  build-and-update:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout app source repo
         uses: actions/checkout@v2
+
+      - name: Generate random tag
+        id: random
+        run: echo "tag=$(uuidgen | cut -d'-' -f1)" >> $GITHUB_OUTPUT
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -21,14 +25,22 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t azuresubha/092024:${{ github.sha }} .
-
+          docker build -t azuresubha/092024:${{ steps.random.outputs.tag }} .
 
       - name: Push Docker image
         run: |
-          docker push azuresubha/092024:${{ github.sha }}
+          docker push azuresubha/092024:${{ steps.random.outputs.tag }}
 
-      - name: Tag latest image
+      - name: Clone ArgoCD config repo
         run: |
-          docker tag azuresubha/092024:${{ github.sha }} azuresubha/092024:latest
-          docker push azuresubha/092024:latest
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/subha4256/argocd-config.git
+          cd argocd-config
+
+          # Update image tag in deploy.yml
+          sed -i "s|azuresubha/092024:.*|azuresubha/092024:${{ steps.random.outputs.tag }}|g" deployment.yml
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add deploy.yml
+          git commit -m "Update image tag to azuresubha/092024:${{ steps.random.outputs.tag }}"
+          git push origin main
