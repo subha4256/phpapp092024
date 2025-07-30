@@ -43,4 +43,4 @@ jobs:
           git config user.email "github-actions@github.com"
           git add deploy.yml
           git commit -m "Update image tag to azuresubha/092024:${{ steps.random.outputs.tag }}"
-          git push origin main
+          git push origin test-argocd-config
